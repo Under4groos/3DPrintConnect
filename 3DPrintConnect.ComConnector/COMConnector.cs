@@ -63,7 +63,7 @@ namespace _3DPrintConnect.ComConnector
                 await OnTimerTick();
             });
             LiveMessage.Start();
-
+            
             base.DataReceived += COMConnector_DataReceived;
         }
 
@@ -158,7 +158,7 @@ namespace _3DPrintConnect.ComConnector
             OnReload?.Invoke();
         }
 
-        public void AppendCommand(string command, Action<COMCommand> Result = null)
+        public void AddCommand(string command, Action<COMCommand> Result = null)
         {
 
             listingCommands.Add(new COMCommand()
@@ -172,7 +172,7 @@ namespace _3DPrintConnect.ComConnector
             });
 
         }
-        public void AppendCommand(COMCommand Command, Action<COMCommand> Result = null)
+        public void AddCommand(COMCommand Command, Action<COMCommand> Result = null)
         {
             Command.ID = Guid.NewGuid();
             Command.OnComplite = Result;
