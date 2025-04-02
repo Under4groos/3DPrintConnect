@@ -1,4 +1,5 @@
 ﻿using _3DPrintConnect.ComConnector.Delegates;
+using _3DPrintConnect.ComConnector.Structures;
 using System.IO.Ports;
 using System.Text;
 
@@ -8,6 +9,12 @@ namespace _3DPrintConnect.ComConnector
     {
         public event COMError? OnError;
         public event COMDispose? OnDisposed;
+        public event COMCommandComplite? OnCommandComplite;
+
+        public event COMStop? OnStop;
+        public event COMReload? OnReload;
+        public event COMStart? OnStart;
+
 
         private string fileLog = "CommandLog.log";
 
@@ -29,7 +36,8 @@ namespace _3DPrintConnect.ComConnector
             try
             {
                 this.Open();
-
+                Console.WriteLine($"Connected port {this.PortName}.");
+                Console.WriteLine($"BaudRate {this.BaudRate}.");
                 return true;
             }
             catch (Exception e)
@@ -39,20 +47,23 @@ namespace _3DPrintConnect.ComConnector
             }
 
         }
-        List<string> listingCommands = new List<string>();
+        List<COMCommand> listingCommands = new List<COMCommand>();
         Dictionary<string, string> ListMessageData = new Dictionary<string, string>();
         StringBuilder MessageData = new StringBuilder();
-        bool status = false;
+        bool statusRuningCommands = false;
         Task LiveMessage;
 
-        string CurretCommand = string.Empty;
+
 
 
         public COMConnector() : base()
         {
-            LiveMessage = new Task(OnTimerTick);
+            LiveMessage = new Task(async () =>
+            {
+                await OnTimerTick();
+            });
             LiveMessage.Start();
-             
+
             base.DataReceived += COMConnector_DataReceived;
         }
 
@@ -71,17 +82,18 @@ namespace _3DPrintConnect.ComConnector
                 {
                     if (data.EndsWith("ok"))
                     {
-                        if (!string.IsNullOrEmpty(CurretCommand))
-                        {
-                            ListMessageData.Add(CurretCommand, data);
-                        }
+                        CurretCommand.StringResult = data;
+                        CurretCommand.Status = false;
+                        MessageData.Clear();
+                        CurretCommand.OnComplite?.Invoke(CurretCommand);
+                        OnCommandComplite?.Invoke(CurretCommand);
                     }
-                    else if(data.EndsWith("error"))
+                    else if (data.EndsWith("error"))
                     {
 
                     }
-                    
-                        
+
+
                 }
 
             }
@@ -89,58 +101,95 @@ namespace _3DPrintConnect.ComConnector
 
         }
 
-        void OnTimerTick()
+
+        int IDCommand = 0;
+        COMCommand CurretCommand = new COMCommand();
+        async Task OnTimerTick()
         {
-            Console.WriteLine("OnTimerTick");
+
             while (true)
             {
+
                 if (!this.IsOpen)
                     continue;
-                if (status)
+                if (statusRuningCommands)
                 {
+                    if (listingCommands.Count == 0)
+                        continue;
 
-                    for (int i = 0; i < listingCommands.Count; i++)
+
+
+                    if (CurretCommand.Status == false)
                     {
-                        string command = listingCommands[i];
-                        if (string.IsNullOrEmpty(command))
-                            continue;
+                        CurretCommand = listingCommands[IDCommand];
+                        CurretCommand.Status = true;
 
-                        CurretCommand = command;
-                        this.WriteLine(command);
+                        this.SendMessage(CurretCommand.Command);
+                        IDCommand++;
+                        if (IDCommand >= listingCommands.Count)
+                            statusRuningCommands = false;
                     }
-                    status = false;
+
+
+
+
+
                 }
+
+                await Task.Delay(10);
             }
         }
         public void Run()
         {
-            status = true;
+            statusRuningCommands = true;
+
         }
         public void Stop()
         {
-            status = false;
+            statusRuningCommands = false;
+            IDCommand = 0;
+            CurretCommand = new COMCommand();
+            OnStart?.Invoke();
         }
-
-
-        public void AppendCommand(string command)
+        public void Reload()
         {
-            listingCommands.Add(command);
+            Stop();
+            Run();
+            OnReload?.Invoke();
         }
 
+        public void AppendCommand(string command, Action<COMCommand> Result = null)
+        {
+
+            listingCommands.Add(new COMCommand()
+            {
+                Command = command,
+                ID = Guid.NewGuid(),
+                Status = false,
+                OnComplite = Result
+
+
+            });
+
+        }
+        public void AppendCommand(COMCommand Command, Action<COMCommand> Result = null)
+        {
+            Command.ID = Guid.NewGuid();
+            Command.OnComplite = Result;
+            if (!string.IsNullOrEmpty(Command.Command))
+            {
+                OnError?.Invoke($"Command is null!");
+                return;
+            }
+            listingCommands.Add(Command);
+
+
+
+        }
 
         public void SendMessage(string command)
         {
-            try
-            {
-                this.WriteLine(command);
-
-
-            }
-            catch (Exception e)
-            {
-                OnError?.Invoke(e.Message);
-
-            }
+            this.WriteLine(command);
         }
 
 

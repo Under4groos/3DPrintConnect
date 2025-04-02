@@ -1,5 +1,5 @@
 ﻿using _3DPrintConnect.ComConnector;
-
+bool b = false;
 using (COMConnector connector = new COMConnector())
 {
     connector.OnError += (result) =>
@@ -10,13 +10,33 @@ using (COMConnector connector = new COMConnector())
     {
         Console.WriteLine("IDisposable");
     };
-    
+    connector.OnCommandComplite += (command) =>
+    {
+
+        Console.WriteLine("\n-----------\n");
+        Console.WriteLine(command.ID);
+        Console.WriteLine(command.StringResult);
+
+        if (command.Command == "c-" && b == false)
+        {
+            connector.Reload();
+            b = true;
+        }
+            
+    };
 
     if (connector.Connect("COM21"))
     {
-        Console.WriteLine("Connected");
 
-        connector.AppendCommand("M503");
+        connector.AppendCommand("g" , (data) =>
+        {
+            Console.WriteLine($"===== {data.ID}");
+        });
+         
+        connector.AppendCommand("a-");
+
+       // connector.AppendCommand("G28");
+
         connector.Run();
     }
     Console.ReadLine();
