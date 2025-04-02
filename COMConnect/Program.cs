@@ -1,5 +1,5 @@
 ﻿using _3DPrintConnect.ComConnector;
-bool b = false;
+ 
 using (COMConnector connector = new COMConnector())
 {
     connector.OnError += (result) =>
@@ -14,28 +14,39 @@ using (COMConnector connector = new COMConnector())
     {
 
         Console.WriteLine("\n-----------\n");
-        Console.WriteLine(command.ID);
+         
         Console.WriteLine(command.StringResult);
 
-        if (command.Command == "c-" && b == false)
-        {
-            connector.Reload();
-            b = true;
-        }
-            
+
+
     };
 
     if (connector.Connect("COM21"))
     {
 
-        connector.AppendCommand("g" , (data) =>
-        {
-            Console.WriteLine($"===== {data.ID}");
-        });
-         
-        connector.AppendCommand("a-");
+        //connector.AppendCommand("G28" , (data) =>
+        //{
+        //    Console.WriteLine($"===== {data.StringResult}");
+        //});
+        //connector.AppendCommand("G1 F1500", (data) =>
+        //{
+        //    Console.WriteLine($"===== {data.StringResult}");
+        //});
 
-       // connector.AppendCommand("G28");
+        //connector.AppendCommand("M503", (data) =>
+        //{
+        //    Console.WriteLine($"===== {data.StringResult}");
+
+        //    File.WriteAllText($"{data.Command}_{data.ID}.txt", data.StringResult);
+        //});
+
+        connector.AppendCommand($"G1 F2000");
+        for (int i = 0; i < 5; i++)
+        {
+          
+            connector.AppendCommand($"G1 X{i * 20} Y10");
+        }
+
 
         connector.Run();
     }
