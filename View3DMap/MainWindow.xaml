@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:View3DMap"
         mc:Ignorable="d"  
-        xmlns:helix="http://helix-toolkit.org/wpf" xmlns:custommesh="clr-namespace:View3DMap.CustomMesh" Background="#fafafa"
+        xmlns:helix="http://helix-toolkit.org/wpf" 
+        xmlns:custommesh="clr-namespace:View3DMap.CustomMesh" Background="#fafafa"
         Title="MainWindow" Height="450" Width="800">
 
     <Window.Resources>
